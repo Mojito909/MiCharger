@@ -53,11 +53,7 @@ class ChargingController(
         }
     }
 
-    suspend fun setCurrentLimit(ma: Int): Boolean = withContext(Dispatchers.IO) {
-        val path = nodes?.currentMaxNode ?: return@withContext false
-        reader.write(path, ma.toString())
-    }
-
+    /** 恢复初始化时记录的原始限流值，撤销历史遗留的电流写入 */
     suspend fun clearCurrentLimit(): Boolean = withContext(Dispatchers.IO) {
         val path = nodes?.currentMaxNode ?: return@withContext false
         val original = originalCurrent ?: return@withContext false
