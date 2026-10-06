@@ -34,7 +34,13 @@ android {
 
     buildTypes {
         release {
-            isMinifyEnabled = false
+            // R8 混淆压缩 + 资源收缩：Compose 依赖体积大，不压缩会显著增大 APK
+            isMinifyEnabled = true
+            isShrinkResources = true
+            proguardFiles(
+                getDefaultProguardFile("proguard-android-optimize.txt"),
+                "proguard-rules.pro",
+            )
             // 开源项目先用 debug 签名保证可安装，正式发布时可换 CI 签名
             signingConfig = signingConfigs.getByName("debug")
         }
@@ -43,6 +49,11 @@ android {
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
+    }
+
+    androidResources {
+        // 只保留中英文资源，剔除依赖库里用不到的几十种语言翻译
+        localeFilters += listOf("zh", "en")
     }
 }
 

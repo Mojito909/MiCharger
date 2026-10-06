@@ -1,6 +1,5 @@
 package com.micharger.ui.settings
 
-import android.content.Context
 import android.os.Build
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -136,15 +135,9 @@ fun SettingsScreen(onOpenAbout: () -> Unit) {
             top.yukonga.miuix.kmp.basic.Card(modifier = Modifier.fillMaxWidth()) {
                 top.yukonga.miuix.kmp.preference.ArrowPreference(
                     title = "关于 MiCharger",
-                    summary = "版本 ${versionName(context)} · 图标、开源仓库与技术栈",
                     onClick = onOpenAbout,
                 )
             }
         }
     }
 }
-
-private fun versionName(context: Context): String =
-    runCatching {
-        context.packageManager.getPackageInfo(context.packageName, 0).versionName ?: "--"
-    }.getOrDefault("--")
