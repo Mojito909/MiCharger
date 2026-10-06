@@ -7,3 +7,7 @@ local.properties
 .DS_Store
 .kotlin/
 captures/
+
+# 禁止提交所有 Markdown 文件
+*.md
+!README.md

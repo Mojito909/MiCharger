@@ -64,6 +64,7 @@ fun SettingsScreen() {
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
+                .padding(horizontal = 16.dp)
                 .nestedScroll(scrollBehavior.nestedScrollConnection)
                 .verticalScroll(rememberScrollState()),
         ) {
@@ -133,7 +134,7 @@ fun SettingsScreen() {
             )
 
             SmallTitle(text = "关于")
-            top.yukonga.miuix.kmp.basic.Card(modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp)) {
+            top.yukonga.miuix.kmp.basic.Card(modifier = Modifier.fillMaxWidth()) {
                 androidx.compose.foundation.layout.Column(modifier = Modifier.padding(16.dp)) {
                     AboutRow("应用", "MiCharger 充电管家")
                     AboutRow("版本", versionName(context))

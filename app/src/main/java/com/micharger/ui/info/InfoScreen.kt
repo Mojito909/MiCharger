@@ -53,11 +53,12 @@ fun InfoScreen() {
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
+                .padding(horizontal = 16.dp)
                 .nestedScroll(scrollBehavior.nestedScrollConnection)
                 .verticalScroll(rememberScrollState()),
         ) {
             SmallTitle(text = "设备")
-            Card(modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp)) {
+            Card(modifier = Modifier.fillMaxWidth()) {
                 Column(modifier = Modifier.padding(16.dp)) {
                     deviceRows.forEach { (k, v) -> InfoRow(k, v) }
                 }

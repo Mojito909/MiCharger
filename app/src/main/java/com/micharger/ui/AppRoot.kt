@@ -44,7 +44,11 @@ fun AppRoot() {
             }
         },
     ) { padding ->
-        Box(modifier = Modifier.fillMaxSize().padding(bottom = padding.calculateBottomPadding())) {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(bottom = padding.calculateBottomPadding()),
+        ) {
             when (tab) {
                 0 -> HomeScreen()
                 1 -> UsageScreen()

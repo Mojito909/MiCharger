@@ -78,6 +78,7 @@ fun UsageScreen() {
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
+                .padding(horizontal = 16.dp)
                 .nestedScroll(scrollBehavior.nestedScrollConnection)
                 .verticalScroll(rememberScrollState()),
         ) {
@@ -101,7 +102,7 @@ fun UsageScreen() {
                 else -> SmallTitle(text = "按 Root 耗电统计")
             }
             items.forEach { usage ->
-                Card(modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 4.dp)) {
+                Card(modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
                     Row(modifier = Modifier.padding(16.dp)) {
                         Column {
                             Text(text = usage.label, fontSize = 16.sp)
