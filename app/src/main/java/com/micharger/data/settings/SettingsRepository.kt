@@ -1,0 +1,56 @@
+package com.micharger.data.settings
+
+import android.content.Context
+import androidx.datastore.core.DataStore
+import androidx.datastore.preferences.core.Preferences
+import androidx.datastore.preferences.core.booleanPreferencesKey
+import androidx.datastore.preferences.core.edit
+import androidx.datastore.preferences.core.intPreferencesKey
+import androidx.datastore.preferences.core.stringPreferencesKey
+import androidx.datastore.preferences.preferencesDataStore
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.map
+
+private val Context.dataStore: DataStore<Preferences> by preferencesDataStore(name = "settings")
+
+data class AppSettings(
+    val targetSoc: Int = 80,
+    val resumeSoc: Int = 75,
+    val themeMode: String = "System",
+    val sampleMinutes: Int = 5,
+    val guardEnabled: Boolean = false,
+    val bootStart: Boolean = false,
+)
+
+class SettingsRepository(private val context: Context) {
+
+    val settingsFlow: Flow<AppSettings> = context.dataStore.data.map { p ->
+        AppSettings(
+            targetSoc = p[KEY_TARGET] ?: 80,
+            resumeSoc = p[KEY_RESUME] ?: 75,
+            themeMode = p[KEY_THEME] ?: "System",
+            sampleMinutes = p[KEY_SAMPLE] ?: 5,
+            guardEnabled = p[KEY_GUARD] ?: false,
+            bootStart = p[KEY_BOOT] ?: false,
+        )
+    }
+
+    suspend fun settingsOnce(): AppSettings = settingsFlow.first()
+
+    suspend fun setTargetSoc(v: Int) = context.dataStore.edit { it[KEY_TARGET] = v }
+    suspend fun setResumeSoc(v: Int) = context.dataStore.edit { it[KEY_RESUME] = v }
+    suspend fun setThemeMode(v: String) = context.dataStore.edit { it[KEY_THEME] = v }
+    suspend fun setSampleMinutes(v: Int) = context.dataStore.edit { it[KEY_SAMPLE] = v }
+    suspend fun setGuardEnabled(v: Boolean) = context.dataStore.edit { it[KEY_GUARD] = v }
+    suspend fun setBootStart(v: Boolean) = context.dataStore.edit { it[KEY_BOOT] = v }
+
+    private companion object {
+        val KEY_TARGET = intPreferencesKey("target_soc")
+        val KEY_RESUME = intPreferencesKey("resume_soc")
+        val KEY_THEME = stringPreferencesKey("theme_mode")
+        val KEY_SAMPLE = intPreferencesKey("sample_minutes")
+        val KEY_GUARD = booleanPreferencesKey("guard_enabled")
+        val KEY_BOOT = booleanPreferencesKey("boot_start")
+    }
+}
