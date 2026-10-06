@@ -1,12 +1,17 @@
 package com.micharger
 
 import android.app.Application
+import com.micharger.data.battery.BatteryRepository
 
 class MiChargerApp : Application() {
+
+    lateinit var batteryRepository: BatteryRepository
+        private set
 
     override fun onCreate() {
         super.onCreate()
         instance = this
+        batteryRepository = BatteryRepository(this)
     }
 
     companion object {
@@ -15,6 +20,5 @@ class MiChargerApp : Application() {
     }
 }
 
-// 各处快捷访问：context.app.xxx
 val android.content.Context.app: MiChargerApp
     get() = applicationContext as MiChargerApp
