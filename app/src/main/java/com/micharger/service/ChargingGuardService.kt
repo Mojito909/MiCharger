@@ -19,6 +19,7 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 
@@ -26,13 +27,16 @@ class ChargingGuardService : Service() {
 
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private var guardJob: Job? = null
+    private var lastShownInBar: Boolean? = null
 
     override fun onBind(intent: Intent?): IBinder? = null
 
     override fun onCreate() {
         super.onCreate()
-        createChannel()
-        startForegroundCompat(buildNotification("充电守护运行中"))
+        isRunning = true
+        createChannels()
+        lastShownInBar = true
+        startForegroundCompat(buildNotification(CHANNEL_ID, "充电守护运行中"))
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
@@ -44,6 +48,8 @@ class ChargingGuardService : Service() {
 
     override fun onDestroy() {
         scope.cancel()
+        isRunning = false
+        statusFlow.value = null
         super.onDestroy()
     }
 
@@ -79,7 +85,8 @@ class ChargingGuardService : Service() {
 
                     else -> "守护中 · 目标 ${settings.targetSoc}%"
                 }
-                updateNotification("电量 ${info.levelPct}% · $status")
+                updateNotification("电量 ${info.levelPct}% · $status", settings.showNotification)
+                statusFlow.value = status
 
                 // 历史采样按独立间隔记录
                 val now = System.currentTimeMillis()
@@ -101,18 +108,27 @@ class ChargingGuardService : Service() {
         }
     }
 
-    private fun createChannel() {
-        val channel = NotificationChannel(
-            CHANNEL_ID,
-            "充电守护",
-            NotificationManager.IMPORTANCE_LOW,
+    private fun createChannels() {
+        val nm = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+        nm.createNotificationChannel(
+            NotificationChannel(
+                CHANNEL_ID,
+                "充电守护",
+                NotificationManager.IMPORTANCE_LOW,
+            ),
         )
-        (getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager)
-            .createNotificationChannel(channel)
+        // 静默通道：最低重要性，不显示状态栏图标，满足前台服务的系统通知要求
+        nm.createNotificationChannel(
+            NotificationChannel(
+                CHANNEL_SILENT_ID,
+                "充电守护（静默）",
+                NotificationManager.IMPORTANCE_MIN,
+            ),
+        )
     }
 
-    private fun buildNotification(text: String): Notification =
-        Notification.Builder(this, CHANNEL_ID)
+    private fun buildNotification(channelId: String, text: String): Notification =
+        Notification.Builder(this, channelId)
             .setSmallIcon(R.drawable.ic_launcher)
             .setContentTitle("充电管家")
             .setContentText(text)
@@ -127,14 +143,37 @@ class ChargingGuardService : Service() {
         }
     }
 
-    private fun updateNotification(text: String) {
-        val nm = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-        nm.notify(NOTIFICATION_ID, buildNotification(text))
+    /**
+     * 更新通知；关闭状态栏显示时降级到静默通道。
+     * 通道切换必须重新 startForeground 才能生效，同通道内直接 notify 即可。
+     */
+    private fun updateNotification(text: String, showInBar: Boolean) {
+        val notification = if (showInBar) {
+            buildNotification(CHANNEL_ID, text)
+        } else {
+            buildNotification(CHANNEL_SILENT_ID, "充电守护运行中")
+        }
+        if (lastShownInBar != showInBar) {
+            startForegroundCompat(notification)
+            lastShownInBar = showInBar
+        } else {
+            val nm = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+            nm.notify(NOTIFICATION_ID, notification)
+        }
     }
 
     companion object {
         private const val CHANNEL_ID = "charging_guard"
+        private const val CHANNEL_SILENT_ID = "charging_guard_silent"
         private const val NOTIFICATION_ID = 1
+
+        /** 服务是否存活，供 UI 判断开关状态与服务是否一致 */
+        @Volatile
+        var isRunning: Boolean = false
+            private set
+
+        /** 首页展示的实时守护动作；null 表示服务未运行 */
+        val statusFlow = MutableStateFlow<String?>(null)
 
         /** 控制周期：与采样间隔解耦，保证阈值动作及时执行 */
         private const val CONTROL_INTERVAL_MS = 30_000L

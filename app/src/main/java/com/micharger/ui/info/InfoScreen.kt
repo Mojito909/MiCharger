@@ -1,7 +1,6 @@
 package com.micharger.ui.info
 
 import android.os.Build
-import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -19,9 +18,6 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.graphics.Path
-import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
@@ -29,7 +25,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.micharger.app
 import com.micharger.data.battery.SysFsReader
-import com.micharger.data.history.BatterySample
 import com.micharger.util.Formatters
 import com.topjohnwu.superuser.Shell
 import java.util.Locale
@@ -50,14 +45,11 @@ fun InfoScreen() {
     var deviceRows by remember { mutableStateOf<List<Pair<String, String>>?>(null) }
     var batteryRows by remember { mutableStateOf<List<Pair<String, String>>?>(null) }
     var todayChargingCount by remember { mutableStateOf<Int?>(null) }
-    var historySamples by remember { mutableStateOf<List<BatterySample>>(emptyList()) }
-
     LaunchedEffect(Unit) {
         withContext(Dispatchers.IO) {
             deviceRows = loadDeviceRows()
             batteryRows = loadBatteryRows()
             todayChargingCount = context.app.historyRepository.todayChargingCount()
-            historySamples = context.app.historyRepository.last24h().sortedBy { it.timestamp }
         }
     }
 
@@ -83,7 +75,6 @@ fun InfoScreen() {
                 rows = batteryRows,
                 emptyText = "正在读取电池信息…",
             )
-            BatteryHistoryCard(samples = historySamples)
             ChargingCountCard(count = todayChargingCount)
             Spacer(modifier = Modifier.height(4.dp))
         }
@@ -147,67 +138,6 @@ private fun loadBatteryRows(): List<Pair<String, String>> {
         "电池健康度" to (health ?: "需要 Root 权限读取"),
         "循环次数" to (cycles?.toString() ?: "需要 Root 权限读取"),
     )
-}
-
-@Composable
-private fun BatteryHistoryCard(samples: List<BatterySample>) {
-    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        SmallTitle(text = "24 小时电量曲线")
-        Card(modifier = Modifier.fillMaxWidth()) {
-            Column(modifier = Modifier.padding(16.dp)) {
-                if (samples.size < 2) {
-                    Text(
-                        text = "暂无历史数据。开启充电守护服务后，将按采样间隔自动记录。",
-                        fontSize = 14.sp,
-                        color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
-                    )
-                } else {
-                    val dividerColor = MiuixTheme.colorScheme.dividerLine
-                    val primaryColor = MiuixTheme.colorScheme.primary
-                    Canvas(modifier = Modifier.fillMaxWidth().height(160.dp)) {
-                        val minT = samples.first().timestamp.toFloat()
-                        val maxT = samples.last().timestamp.toFloat()
-                        val range = (maxT - minT).coerceAtLeast(1f)
-                        val points = samples.map {
-                            Offset(
-                                x = (it.timestamp - minT) / range * size.width,
-                                y = (1f - it.level.coerceIn(0, 100) / 100f) * size.height,
-                            )
-                        }
-                        drawLine(
-                            color = dividerColor,
-                            start = Offset(0f, 0f),
-                            end = Offset(size.width, 0f),
-                            strokeWidth = 2f,
-                        )
-                        val path = Path().apply {
-                            moveTo(points.first().x, points.first().y)
-                            points.drop(1).forEach { lineTo(it.x, it.y) }
-                        }
-                        drawPath(
-                            path = path,
-                            color = primaryColor,
-                            style = Stroke(width = 6f),
-                        )
-                    }
-                    Spacer(modifier = Modifier.height(4.dp))
-                    Row(modifier = Modifier.fillMaxWidth()) {
-                        Text(
-                            text = Formatters.hhmm(samples.first().timestamp),
-                            fontSize = 12.sp,
-                            color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
-                        )
-                        Spacer(modifier = Modifier.weight(1f))
-                        Text(
-                            text = "现在",
-                            fontSize = 12.sp,
-                            color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
-                        )
-                    }
-                }
-            }
-        }
-    }
 }
 
 @Composable

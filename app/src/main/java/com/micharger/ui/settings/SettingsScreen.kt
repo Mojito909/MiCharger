@@ -81,6 +81,14 @@ fun SettingsScreen(onOpenAbout: () -> Unit) {
                 summary = "达到目标电量自动暂停充电，回落到恢复阈值继续充电",
             )
             SwitchPreference(
+                checked = settings.showNotification,
+                onCheckedChange = { checked ->
+                    scope.launch { context.app.settingsRepository.setShowNotification(checked) }
+                },
+                title = "状态栏显示",
+                summary = "关闭后守护转入静默运行，不再在状态栏显示图标（需守护服务开启）",
+            )
+            SwitchPreference(
                 checked = settings.bootStart,
                 onCheckedChange = { checked ->
                     scope.launch { context.app.settingsRepository.setBootStart(checked) }

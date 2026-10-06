@@ -21,6 +21,7 @@ data class AppSettings(
     val sampleMinutes: Int = 5,
     val guardEnabled: Boolean = false,
     val bootStart: Boolean = false,
+    val showNotification: Boolean = true,
 )
 
 class SettingsRepository(private val context: Context) {
@@ -33,6 +34,7 @@ class SettingsRepository(private val context: Context) {
             sampleMinutes = p[KEY_SAMPLE] ?: 5,
             guardEnabled = p[KEY_GUARD] ?: false,
             bootStart = p[KEY_BOOT] ?: false,
+            showNotification = p[KEY_NOTIFY] ?: true,
         )
     }
 
@@ -44,6 +46,7 @@ class SettingsRepository(private val context: Context) {
     suspend fun setSampleMinutes(v: Int) = context.dataStore.edit { it[KEY_SAMPLE] = v }
     suspend fun setGuardEnabled(v: Boolean) = context.dataStore.edit { it[KEY_GUARD] = v }
     suspend fun setBootStart(v: Boolean) = context.dataStore.edit { it[KEY_BOOT] = v }
+    suspend fun setShowNotification(v: Boolean) = context.dataStore.edit { it[KEY_NOTIFY] = v }
 
     private companion object {
         val KEY_TARGET = intPreferencesKey("target_soc")
@@ -52,5 +55,6 @@ class SettingsRepository(private val context: Context) {
         val KEY_SAMPLE = intPreferencesKey("sample_minutes")
         val KEY_GUARD = booleanPreferencesKey("guard_enabled")
         val KEY_BOOT = booleanPreferencesKey("boot_start")
+        val KEY_NOTIFY = booleanPreferencesKey("show_notification")
     }
 }
