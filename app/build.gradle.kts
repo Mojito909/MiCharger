@@ -37,6 +37,7 @@ dependencies {
     implementation(libs.libsu.core)
     implementation(libs.datastore.preferences)
     implementation(libs.room.runtime)
+    implementation(libs.room.ktx)
     implementation(libs.coroutines.android)
     ksp(libs.room.compiler)
     testImplementation(libs.junit)

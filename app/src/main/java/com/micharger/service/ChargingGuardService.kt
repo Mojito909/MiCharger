@@ -11,7 +11,7 @@ import android.os.Build
 import android.os.IBinder
 import com.micharger.R
 import com.micharger.app
-// Task 7 启用：import com.micharger.data.battery.BatterySample
+import com.micharger.data.battery.BatterySample
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -44,7 +44,7 @@ class ChargingGuardService : Service() {
 
     private suspend fun guardLoop() {
         val app = app
-        // Task 7 启用：val history = app.historyRepository
+        val history = app.historyRepository
         while (isActive) {
             val settings = app.settingsRepository.settingsOnce()
             if (!settings.guardEnabled) break
@@ -64,8 +64,6 @@ class ChargingGuardService : Service() {
             }
 
             // 历史采样
-            // Task 7 启用
-            /*
             runCatching {
                 history.insert(
                     BatterySample(
@@ -76,7 +74,6 @@ class ChargingGuardService : Service() {
                 )
                 history.trim()
             }
-            */
 
             updateNotification("电量 ${info.levelPct}% · " + if (info.charging) "充电中" else "未充电")
             delay(settings.sampleMinutes * 60_000L)
