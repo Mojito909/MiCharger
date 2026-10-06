@@ -21,6 +21,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -37,10 +38,13 @@ import com.micharger.service.ChargingGuardService
 import com.micharger.util.Formatters
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import top.yukonga.miuix.kmp.basic.Card
 import top.yukonga.miuix.kmp.basic.MiuixScrollBehavior
 import top.yukonga.miuix.kmp.basic.Scaffold
+import top.yukonga.miuix.kmp.basic.SmallTitle
+import top.yukonga.miuix.kmp.basic.Switch
 import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.basic.TopAppBar
 import top.yukonga.miuix.kmp.theme.MiuixTheme
@@ -49,9 +53,11 @@ import top.yukonga.miuix.kmp.theme.MiuixTheme
 fun HomeScreen() {
     val scrollBehavior = MiuixScrollBehavior()
     val context = LocalContext.current
+    val scope = rememberCoroutineScope()
     var battery by remember { mutableStateOf<BatteryInfo?>(null) }
     val settings by context.app.settingsRepository.settingsFlow.collectAsState(initial = AppSettings())
     val guardStatus by ChargingGuardService.statusFlow.collectAsState()
+    var manualSuspended by remember { mutableStateOf<Boolean?>(null) }
 
     LaunchedEffect(Unit) {
         val repo = context.app.batteryRepository
@@ -61,7 +67,16 @@ fun HomeScreen() {
         }
     }
 
-    // 一次性清理旧版本遗留的内核写入（限流/暂停）；守护开启时让守护全权接管，避免互相打架
+    // 手动暂停/恢复状态：进入页面时读取一次，操作后刷新
+    LaunchedEffect(Unit) {
+        withContext(Dispatchers.IO) {
+            val controller = context.app.chargingController
+            controller.initialize()
+            manualSuspended = controller.isSuspended()
+        }
+    }
+
+    // 一次性清理旧版本遗留的限流写入；不再自动恢复充电，避免覆盖手动暂停状态
     LaunchedEffect(Unit) {
         withContext(Dispatchers.IO) {
             val app = context.app
@@ -69,7 +84,6 @@ fun HomeScreen() {
                 val controller = app.chargingController
                 controller.initialize()
                 controller.clearCurrentLimit()
-                controller.resume()
             }
         }
     }
@@ -94,6 +108,20 @@ fun HomeScreen() {
             battery?.let { info ->
                 BatteryCard(info = info)
             }
+
+            ManualChargeControlCard(
+                suspended = manualSuspended,
+                guardActive = settings.guardEnabled,
+                onToggle = { pause ->
+                    scope.launch {
+                        withContext(Dispatchers.IO) {
+                            val controller = context.app.chargingController
+                            if (pause) controller.pause() else controller.resume()
+                            manualSuspended = controller.isSuspended()
+                        }
+                    }
+                },
+            )
 
         }
     }
@@ -174,6 +202,50 @@ private fun GuardActivationCard(active: Boolean, status: String?) {
                         cap = androidx.compose.ui.graphics.StrokeCap.Round,
                     )
                 }
+            }
+        }
+    }
+}
+
+@Composable
+private fun ManualChargeControlCard(
+    suspended: Boolean?,
+    guardActive: Boolean,
+    onToggle: (Boolean) -> Unit,
+) {
+    SmallTitle(text = "充电控制")
+    Card(modifier = Modifier.fillMaxWidth()) {
+        Column(
+            modifier = Modifier.padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp),
+        ) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = "暂停充电",
+                        fontSize = 16.sp,
+                        fontWeight = FontWeight.Bold,
+                    )
+                    Text(
+                        text = when {
+                            guardActive -> "守护服务运行中，手动操作可能被覆盖"
+                            suspended == null -> "无法读取充电状态"
+                            suspended -> "已暂停，插入充电器也不会充电"
+                            else -> "正常充电中"
+                        },
+                        fontSize = 13.sp,
+                        color = when {
+                            guardActive || suspended == null -> MiuixTheme.colorScheme.onSurfaceVariantSummary
+                            suspended -> MiuixTheme.colorScheme.primary
+                            else -> MiuixTheme.colorScheme.onSurfaceVariantSummary
+                        },
+                    )
+                }
+                Switch(
+                    checked = suspended == true,
+                    onCheckedChange = onToggle,
+                    enabled = !guardActive && suspended != null,
+                )
             }
         }
     }
