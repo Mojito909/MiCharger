@@ -28,6 +28,7 @@ class ChargingGuardService : Service() {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private var guardJob: Job? = null
     private var lastShownInBar: Boolean? = null
+    private var chargingPaused: Boolean? = null
 
     override fun onBind(intent: Intent?): IBinder? = null
 
@@ -50,6 +51,7 @@ class ChargingGuardService : Service() {
         scope.cancel()
         isRunning = false
         statusFlow.value = null
+        chargingPaused = null
         super.onDestroy()
     }
 
@@ -75,13 +77,19 @@ class ChargingGuardService : Service() {
 
                 // 直接按电量写节点：写是幂等的，不依赖读状态是否可解析
                 val status = when {
-                    info.levelPct >= settings.targetSoc ->
-                        if (controller.pause()) "已暂停充电（目标 ${settings.targetSoc}%）"
+                    info.levelPct >= settings.targetSoc -> {
+                        val success = if (chargingPaused == true) true else controller.pause()
+                        if (success) chargingPaused = true
+                        if (success) "已暂停充电（目标 ${settings.targetSoc}%）"
                         else "暂停失败：无法写入充电节点"
+                    }
 
-                    info.levelPct <= settings.resumeSoc ->
-                        if (controller.resume()) "已恢复充电（恢复阈值 ${settings.resumeSoc}%）"
+                    info.levelPct <= settings.resumeSoc -> {
+                        val success = if (chargingPaused == false) true else controller.resume()
+                        if (success) chargingPaused = false
+                        if (success) "已恢复充电（恢复阈值 ${settings.resumeSoc}%）"
                         else "恢复失败：无法写入充电节点"
+                    }
 
                     else -> "守护中 · 目标 ${settings.targetSoc}%"
                 }
@@ -103,6 +111,8 @@ class ChargingGuardService : Service() {
                         history.trim()
                     }
                 }
+            }.onFailure { error ->
+                statusFlow.value = "守护异常：${error.message ?: "读取或控制失败"}"
             }
             delay(CONTROL_INTERVAL_MS)
         }

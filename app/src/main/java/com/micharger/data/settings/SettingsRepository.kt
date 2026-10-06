@@ -27,11 +27,15 @@ data class AppSettings(
 class SettingsRepository(private val context: Context) {
 
     val settingsFlow: Flow<AppSettings> = context.dataStore.data.map { p ->
+        val target = (p[KEY_TARGET] ?: 80).coerceIn(50, 95)
+        val resume = (p[KEY_RESUME] ?: 75).coerceIn(30, target - 5)
+        val sample = (p[KEY_SAMPLE] ?: 5).takeIf { it in SAMPLE_MINUTES } ?: 5
+        val theme = (p[KEY_THEME] ?: "System").takeIf { it in THEMES } ?: "System"
         AppSettings(
-            targetSoc = p[KEY_TARGET] ?: 80,
-            resumeSoc = p[KEY_RESUME] ?: 75,
-            themeMode = p[KEY_THEME] ?: "System",
-            sampleMinutes = p[KEY_SAMPLE] ?: 5,
+            targetSoc = target,
+            resumeSoc = resume,
+            themeMode = theme,
+            sampleMinutes = sample,
             guardEnabled = p[KEY_GUARD] ?: false,
             bootStart = p[KEY_BOOT] ?: false,
             showNotification = p[KEY_NOTIFY] ?: true,
@@ -49,6 +53,8 @@ class SettingsRepository(private val context: Context) {
     suspend fun setShowNotification(v: Boolean) = context.dataStore.edit { it[KEY_NOTIFY] = v }
 
     private companion object {
+        val SAMPLE_MINUTES = setOf(1, 5, 15, 30)
+        val THEMES = setOf("System", "Light", "Dark")
         val KEY_TARGET = intPreferencesKey("target_soc")
         val KEY_RESUME = intPreferencesKey("resume_soc")
         val KEY_THEME = stringPreferencesKey("theme_mode")

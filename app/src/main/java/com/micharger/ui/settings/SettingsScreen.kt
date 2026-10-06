@@ -73,8 +73,21 @@ fun SettingsScreen(onOpenAbout: () -> Unit) {
                     if (checked && Build.VERSION.SDK_INT >= 33) {
                         notifPermission.launch(android.Manifest.permission.POST_NOTIFICATIONS)
                     } else {
-                        scope.launch { context.app.settingsRepository.setGuardEnabled(checked) }
-                        if (checked) ChargingGuardService.start(context) else ChargingGuardService.stop(context)
+                        scope.launch {
+                            val app = context.app
+                            app.settingsRepository.setGuardEnabled(checked)
+                            if (checked) {
+                                ChargingGuardService.start(context)
+                            } else {
+                                ChargingGuardService.stop(context)
+                                launch(kotlinx.coroutines.Dispatchers.IO) {
+                                    val controller = app.chargingController
+                                    controller.initialize()
+                                    controller.clearCurrentLimit()
+                                    controller.resume()
+                                }
+                            }
+                        }
                     }
                 },
                 title = "充电守护服务",

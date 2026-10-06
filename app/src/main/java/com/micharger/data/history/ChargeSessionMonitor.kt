@@ -20,7 +20,12 @@ import kotlinx.coroutines.launch
  */
 object ChargeSessionMonitor {
 
+    private var receiver: BroadcastReceiver? = null
+
+    @Synchronized
     fun start(context: Context, scope: CoroutineScope, history: HistoryRepository) {
+        if (receiver != null) return
+
         val appContext = context.applicationContext
         val filter = IntentFilter(Intent.ACTION_BATTERY_CHANGED)
 
@@ -55,7 +60,15 @@ object ChargeSessionMonitor {
                 }
             }
         }
+        this.receiver = receiver
         appContext.registerReceiver(receiver, filter)
+    }
+
+    @Synchronized
+    fun stop(context: Context) {
+        val currentReceiver = receiver ?: return
+        context.applicationContext.unregisterReceiver(currentReceiver)
+        receiver = null
     }
 
     private fun readSticky(context: Context, filter: IntentFilter): Boolean {

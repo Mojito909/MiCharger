@@ -5,6 +5,7 @@ import android.os.Build
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -12,6 +13,9 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.background
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.Composable
@@ -24,6 +28,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
@@ -60,7 +65,7 @@ fun HomeScreen() {
         val repo = context.app.batteryRepository
         while (true) {
             battery = withContext(Dispatchers.IO) { repo.snapshot() }
-            delay(2000)
+            delay(5000)
         }
     }
 
@@ -98,6 +103,11 @@ fun HomeScreen() {
                 .verticalScroll(rememberScrollState()),
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
+            GuardActivationCard(
+                active = settings.guardEnabled && guardStatus != null,
+                status = guardStatus,
+            )
+
             battery?.let { info ->
                 BatteryCard(info = info)
             }
@@ -111,11 +121,63 @@ fun HomeScreen() {
                     if (checked && Build.VERSION.SDK_INT >= 33) {
                         notifPermission.launch(Manifest.permission.POST_NOTIFICATIONS)
                     } else {
-                        scope.launch { context.app.settingsRepository.setGuardEnabled(checked) }
-                        if (checked) ChargingGuardService.start(context) else ChargingGuardService.stop(context)
+                        scope.launch {
+                            val app = context.app
+                            app.settingsRepository.setGuardEnabled(checked)
+                            if (checked) {
+                                ChargingGuardService.start(context)
+                            } else {
+                                ChargingGuardService.stop(context)
+                                withContext(Dispatchers.IO) {
+                                    val controller = app.chargingController
+                                    controller.initialize()
+                                    controller.clearCurrentLimit()
+                                    controller.resume()
+                                }
+                            }
+                        }
                     }
                 },
             )
+        }
+    }
+}
+
+@Composable
+private fun GuardActivationCard(active: Boolean, status: String?) {
+    val accent = if (active) androidx.compose.ui.graphics.Color(0xFF3F7D3A) else MiuixTheme.colorScheme.onSurfaceVariantSummary
+    val surface = if (active) androidx.compose.ui.graphics.Color(0xFFEAF5E9) else MiuixTheme.colorScheme.surface
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(28.dp))
+            .background(surface),
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = 24.dp, vertical = 20.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                Text(
+                    text = if (active) "已激活" else "未激活",
+                    fontSize = 32.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = accent,
+                )
+                Text(
+                    text = status ?: "开启充电守护后，自动维持目标电量",
+                    fontSize = 14.sp,
+                    color = accent,
+                )
+            }
+            Box(
+                modifier = Modifier
+                    .clip(CircleShape)
+                    .background(accent)
+                    .padding(14.dp),
+            ) {
+                Text(text = if (active) "✓" else "–", fontSize = 28.sp, color = surface)
+            }
         }
     }
 }
