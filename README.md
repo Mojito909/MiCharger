@@ -6,13 +6,30 @@
 
 ## 软件截图
 
-| 充电 | 信息 |
-|---|---|
-| <img src="screenshots/充电.jpg" alt="充电页面" width="65%"> | <img src="screenshots/信息.jpg" alt="信息页面" width="65%"> |
-
-| 设置 | 关于 |
-|---|---|
-| <img src="screenshots/设置.jpg" alt="设置页面" width="65%"> | <img src="screenshots/关于.jpg" alt="关于页面" width="65%"> |
+<div align="center">
+  <table>
+    <tr>
+      <td align="center" width="50%">
+        <strong>充电</strong><br>
+        <img src="screenshots/充电.jpg" alt="充电页面" width="300">
+      </td>
+      <td align="center" width="50%">
+        <strong>信息</strong><br>
+        <img src="screenshots/信息.jpg" alt="信息页面" width="300">
+      </td>
+    </tr>
+    <tr>
+      <td align="center" width="50%">
+        <strong>设置</strong><br>
+        <img src="screenshots/设置.jpg" alt="设置页面" width="300">
+      </td>
+      <td align="center" width="50%">
+        <strong>关于</strong><br>
+        <img src="screenshots/关于.jpg" alt="关于页面" width="300">
+      </td>
+    </tr>
+  </table>
+</div>
 
 ## 软件功能
 
