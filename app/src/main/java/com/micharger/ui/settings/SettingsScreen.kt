@@ -23,6 +23,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.micharger.app
 import com.micharger.data.settings.AppSettings
+import com.micharger.service.ChargingGuardService
 import kotlinx.coroutines.launch
 import top.yukonga.miuix.kmp.basic.DropdownItem
 import top.yukonga.miuix.kmp.basic.MiuixScrollBehavior
@@ -52,7 +53,7 @@ fun SettingsScreen() {
     ) { granted ->
         if (granted) {
             context.app.settingsRepository.setGuardEnabled(true)
-            // Task 6 启用：ChargingGuardService.start(context)
+            ChargingGuardService.start(context)
         }
     }
 
@@ -74,7 +75,7 @@ fun SettingsScreen() {
                         notifPermission.launch(android.Manifest.permission.POST_NOTIFICATIONS)
                     } else {
                         context.app.settingsRepository.setGuardEnabled(checked)
-                        // Task 6 启用：if (checked) ChargingGuardService.start(context) else ChargingGuardService.stop(context)
+                        if (checked) ChargingGuardService.start(context) else ChargingGuardService.stop(context)
                     }
                 },
                 title = "充电守护服务",

@@ -29,7 +29,6 @@
             </intent-filter>
         </activity>
 
-        <!-- Task 6 启用：以下两段本任务临时注释，Task 6 取消注释
         <service
             android:name=".service.ChargingGuardService"
             android:exported="false"
@@ -46,6 +45,5 @@
                 <action android:name="android.intent.action.BOOT_COMPLETED" />
             </intent-filter>
         </receiver>
-        -->
     </application>
 </manifest>
