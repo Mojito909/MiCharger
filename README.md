@@ -8,11 +8,11 @@
 
 | 充电 | 信息 |
 |---|---|
-| ![充电页面](screenshots/充电.jpg) | ![信息页面](screenshots/信息.jpg) |
+| <img src="screenshots/充电.jpg" alt="充电页面" width="65%"> | <img src="screenshots/信息.jpg" alt="信息页面" width="65%"> |
 
 | 设置 | 关于 |
 |---|---|
-| ![设置页面](screenshots/设置.jpg) | ![关于页面](screenshots/关于.jpg) |
+| <img src="screenshots/设置.jpg" alt="设置页面" width="65%"> | <img src="screenshots/关于.jpg" alt="关于页面" width="65%"> |
 
 ## 软件功能
 
