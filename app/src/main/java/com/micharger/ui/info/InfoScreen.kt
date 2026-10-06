@@ -80,9 +80,8 @@ private fun loadDeviceRows(): List<Pair<String, String>> {
         "型号" to Build.MODEL,
         "设备代号" to Build.DEVICE,
         "Android 版本" to "${Build.VERSION.RELEASE} (API ${Build.VERSION.SDK_INT})",
-        "系统版本" to listOfNotNull(miui?.takeIf { it.isNotEmpty() && !it.contains("error") },
-            hyper?.takeIf { it.isNotEmpty() && !it.contains("error") })
-            .firstOrNull() ?: "无",
+        "系统版本" to (listOfNotNull(miui?.takeIf { it.isNotEmpty() && !it.contains("error") },
+            hyper?.takeIf { it.isNotEmpty() && !it.contains("error") }).firstOrNull() ?: "无"),
     )
 }
 

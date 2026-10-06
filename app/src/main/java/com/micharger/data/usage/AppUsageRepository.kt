@@ -20,8 +20,9 @@ class AppUsageRepository(private val context: Context) {
 
     fun hasUsageAccess(): Boolean {
         val ops = context.getSystemService(Context.APP_OPS_SERVICE) as AppOpsManager
+        // OP_GET_USAGE_STATS 常量在新 SDK 中已隐藏，改用字符串操作名（公开 API）
         val mode = ops.checkOpNoThrow(
-            AppOpsManager.OP_GET_USAGE_STATS, Process.myUid(), context.packageName,
+            "android:get_usage_stats", Process.myUid(), context.packageName,
         )
         return mode == AppOpsManager.MODE_ALLOWED
     }

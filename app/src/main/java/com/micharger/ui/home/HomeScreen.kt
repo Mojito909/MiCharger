@@ -238,6 +238,9 @@ private fun HistoryCard(samples: List<BatterySample>) {
                     color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
                 )
             } else {
+                // Canvas 绘制 lambda 非 @Composable 上下文，颜色需先在组合期取出
+                val dividerColor = MiuixTheme.colorScheme.dividerLine
+                val primaryColor = MiuixTheme.colorScheme.primary
                 Canvas(modifier = Modifier.fillMaxWidth().height(160.dp)) {
                     val minT = samples.first().timestamp.toFloat()
                     val maxT = samples.last().timestamp.toFloat()
@@ -250,7 +253,7 @@ private fun HistoryCard(samples: List<BatterySample>) {
                     }
                     // 基线 100%
                     drawLine(
-                        color = MiuixTheme.colorScheme.dividerLine,
+                        color = dividerColor,
                         start = Offset(0f, 0f),
                         end = Offset(size.width, 0f),
                         strokeWidth = 2f,
@@ -261,7 +264,7 @@ private fun HistoryCard(samples: List<BatterySample>) {
                     }
                     drawPath(
                         path = path,
-                        color = MiuixTheme.colorScheme.primary,
+                        color = primaryColor,
                         style = Stroke(width = 6f),
                     )
                 }

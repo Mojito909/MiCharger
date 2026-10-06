@@ -11,7 +11,8 @@ import android.os.Build
 import android.os.IBinder
 import com.micharger.R
 import com.micharger.app
-import com.micharger.data.battery.BatterySample
+import com.micharger.data.history.BatterySample
+import kotlin.coroutines.coroutineContext
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -45,7 +46,7 @@ class ChargingGuardService : Service() {
     private suspend fun guardLoop() {
         val app = app
         val history = app.historyRepository
-        while (isActive) {
+        while (coroutineContext.isActive) {
             val settings = app.settingsRepository.settingsOnce()
             if (!settings.guardEnabled) break
 

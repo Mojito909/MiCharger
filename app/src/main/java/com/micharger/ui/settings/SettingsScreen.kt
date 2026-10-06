@@ -52,7 +52,7 @@ fun SettingsScreen() {
         ActivityResultContracts.RequestPermission(),
     ) { granted ->
         if (granted) {
-            context.app.settingsRepository.setGuardEnabled(true)
+            scope.launch { context.app.settingsRepository.setGuardEnabled(true) }
             ChargingGuardService.start(context)
         }
     }
@@ -74,7 +74,7 @@ fun SettingsScreen() {
                     if (checked && Build.VERSION.SDK_INT >= 33) {
                         notifPermission.launch(android.Manifest.permission.POST_NOTIFICATIONS)
                     } else {
-                        context.app.settingsRepository.setGuardEnabled(checked)
+                        scope.launch { context.app.settingsRepository.setGuardEnabled(checked) }
                         if (checked) ChargingGuardService.start(context) else ChargingGuardService.stop(context)
                     }
                 },
@@ -84,7 +84,7 @@ fun SettingsScreen() {
             SwitchPreference(
                 checked = settings.bootStart,
                 onCheckedChange = { checked ->
-                    context.app.settingsRepository.setBootStart(checked)
+                    scope.launch { context.app.settingsRepository.setBootStart(checked) }
                 },
                 title = "开机自启",
                 summary = "开机后自动启动充电守护（需守护服务开启）",

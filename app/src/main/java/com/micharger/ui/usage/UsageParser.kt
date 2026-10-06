@@ -13,5 +13,5 @@ object UsageParser {
                 ?: m.groupValues[3].toIntOrNull()
             val mah = m.groupValues[4].toDoubleOrNull()
             if (uid != null && mah != null && mah > 0) UidPower(uid, mah) else null
-        }.sortedByDescending { it.mah }.take(20)
+        }.sortedByDescending { it.mah }.take(20).toList()
 }
