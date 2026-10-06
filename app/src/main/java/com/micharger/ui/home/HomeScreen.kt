@@ -36,7 +36,6 @@ import top.yukonga.miuix.kmp.basic.Button
 import top.yukonga.miuix.kmp.basic.Card
 import top.yukonga.miuix.kmp.basic.MiuixScrollBehavior
 import top.yukonga.miuix.kmp.basic.Scaffold
-import top.yukonga.miuix.kmp.basic.Slider
 import top.yukonga.miuix.kmp.basic.SmallTitle
 import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.basic.TextButton
@@ -51,7 +50,7 @@ fun HomeScreen() {
     var rootGranted by remember { mutableStateOf<Boolean?>(null) }
     var nodes by remember { mutableStateOf<ChargingNodes?>(null) }
     var suspended by remember { mutableStateOf<Boolean?>(null) }
-    var limitMa by remember { mutableStateOf(1500f) }
+    var selectedMode by remember { mutableStateOf(ChargeMode.BALANCED) }
     var limitBusy by remember { mutableStateOf(false) }
 
     LaunchedEffect(Unit) {
@@ -91,7 +90,7 @@ fun HomeScreen() {
                 rootGranted = rootGranted,
                 nodes = nodes,
                 suspended = suspended,
-                limitMa = limitMa,
+                selectedMode = selectedMode,
                 limitBusy = limitBusy,
                 onPauseResume = {
                     CoroutineScope(Dispatchers.IO).launch {
@@ -100,21 +99,22 @@ fun HomeScreen() {
                         if (ok) suspended = controller.isSuspended()
                     }
                 },
-                onApplyLimit = {
+                onModeChange = { mode ->
+                    selectedMode = mode
                     CoroutineScope(Dispatchers.IO).launch {
                         limitBusy = true
-                        context.app.chargingController.setCurrentLimit(limitMa.toInt())
+                        val controller = context.app.chargingController
+                        controller.pause()
+                        if (mode.currentMa != null) {
+                            controller.setCurrentLimit(mode.currentMa)
+                        } else {
+                            controller.clearCurrentLimit()
+                        }
+                        controller.resume()
+                        suspended = controller.isSuspended()
                         limitBusy = false
                     }
                 },
-                onClearLimit = {
-                    CoroutineScope(Dispatchers.IO).launch {
-                        limitBusy = true
-                        context.app.chargingController.clearCurrentLimit()
-                        limitBusy = false
-                    }
-                },
-                onLimitChange = { limitMa = it },
             )
 
         }
@@ -178,17 +178,21 @@ private fun InfoRow(label: String, value: String) {
     }
 }
 
+private enum class ChargeMode(val title: String, val currentMa: Int?, val description: String) {
+    SLOW("慢充", 900, "限制电流，降低发热"),
+    BALANCED("缓充", 1700, "适度限制，兼顾速度与温度"),
+    FAST("快充", null, "解除限流，由系统与充电器协商协议"),
+}
+
 @Composable
 private fun ChargingControlCard(
     rootGranted: Boolean?,
     nodes: ChargingNodes?,
     suspended: Boolean?,
-    limitMa: Float,
+    selectedMode: ChargeMode,
     limitBusy: Boolean,
     onPauseResume: () -> Unit,
-    onApplyLimit: () -> Unit,
-    onClearLimit: () -> Unit,
-    onLimitChange: (Float) -> Unit,
+    onModeChange: (ChargeMode) -> Unit,
 ) {
     SmallTitle(text = "充电控制")
     Card(modifier = Modifier.fillMaxWidth()) {
@@ -217,17 +221,30 @@ private fun ChargingControlCard(
                         Text(if (suspended == true) "恢复充电" else "立即暂停")
                     }
                     if (nodes.currentMaxNode != null) {
-                        Text("充电限流：${limitMa.toInt()} mA", fontSize = 14.sp)
-                        Slider(
-                            value = limitMa,
-                            onValueChange = onLimitChange,
-                            valueRange = 300f..3300f,
-                        )
-                        Row {
-                            TextButton(text = "应用限流", onClick = onApplyLimit, enabled = !limitBusy)
-                            Spacer(modifier = Modifier.weight(1f))
-                            TextButton(text = "恢复默认", onClick = onClearLimit, enabled = !limitBusy)
+                        Text("充电模式", fontSize = 14.sp)
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        ) {
+                            ChargeMode.entries.forEach { mode ->
+                                TextButton(
+                                    text = mode.title,
+                                    onClick = { onModeChange(mode) },
+                                    enabled = !limitBusy,
+                                    modifier = Modifier.weight(1f),
+                                )
+                            }
                         }
+                        Text(
+                            text = selectedMode.description + (selectedMode.currentMa?.let { " · $it mA" } ?: ""),
+                            fontSize = 13.sp,
+                            color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
+                        )
+                        Text(
+                            text = "切换后会短暂重新协商充电状态",
+                            fontSize = 12.sp,
+                            color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
+                        )
                     }
                 }
                 else -> Text("未找到可用的充电控制节点", fontSize = 14.sp)
