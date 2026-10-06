@@ -29,7 +29,8 @@ jobs:
       - name: Build release APK
         run: ./gradlew assembleRelease --no-daemon
 
-      # 与 app/build.gradle.kts 的版本公式保持一致：逢十进位（1.0.10 → 1.1.0）
+      # 与 app/build.gradle.kts 的版本公式保持一致：patch 循环 0-9，
+      # 每 10 次提交进位到 minor（1.0.10 → 1.1.0），每 100 次进位到 major（→ 2.0.0）
       - name: Compute version and rename APK
         run: |
           N=$(git rev-list --count HEAD)
