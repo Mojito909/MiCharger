@@ -11,6 +11,7 @@ dependencyResolutionManagement {
     repositories {
         google()
         mavenCentral()
+        maven("https://jitpack.io") // libsu 在 JitPack 发布，不在 Maven Central
     }
 }
 
