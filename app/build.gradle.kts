@@ -6,7 +6,7 @@ plugins {
 
 android {
     namespace = "com.micharger"
-    compileSdk { version = release(36) }
+    compileSdk { version = release(37) } // Miuix 0.9.4 与 Compose 1.12 要求 compileSdk ≥ 37
 
     defaultConfig {
         applicationId = "com.micharger"
