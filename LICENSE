@@ -1,21 +1,99 @@
-MIT License
+PolyForm Noncommercial License 1.0.0
 
-Copyright (c) 2026 MiCharger contributors
+Copyright (c) 2026 Mojito909
 
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
+<https://polyformproject.org/licenses/noncommercial/1.0.0>
 
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
+## Acceptance
 
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
+In order to get any license under these terms, you must agree to them as
+both strict obligations and conditions on all the licenses granted to you
+below.
+
+## Copyright License
+
+The licensor grants you a copyright license for the software to do
+everything you might do that requires your permission to read the software.
+This includes for purposes of:
+
+- compiling the software;
+- running a private copy on any of your devices for any of your
+  noncommercial purposes;
+- creating and running a modified private copy on any of your devices for
+  any of your noncommercial purposes.
+
+## Notices
+
+You must ensure that anyone who gets a copy of any part of the software from
+you also gets a copy of these terms.
+
+If you make changes to the software, you must include notices in the changed
+source code distinguishing those changes from the baseline software.
+
+## Noncommercial Purposes
+
+"Noncommercial purposes" means:
+
+- personal use;
+- research;
+- evaluation and testing;
+- contribution to this project;
+- use within a single legal entity that is not a business.
+
+"Noncommercial purposes" does not include:
+
+- use by a business;
+- use in providing products or services to others, even if free of charge;
+- use in distributing the software to businesses, even if free of charge.
+
+## Patent License
+
+The licensor grants you a patent license for the software that covers patent
+claims the licensor can license, or becomes able to license, that you would
+infringe by using the software for noncommercial purposes.
+
+## Fair Use
+
+You may have "fair use" rights for the software under the law. These terms
+are not intended to limit them.
+
+## No Other Rights
+
+These terms do not allow you to sublicense or transfer any of your licenses
+to anyone else, or distribute the software under different terms. These terms
+do not imply any other licenses.
+
+## Violations
+
+The first time you are notified in writing that you have violated any of
+these terms, or become aware of violating them yourself, any licenses you
+have under these terms are void. However, if you come into compliance with
+these terms within 30 days of that notification, your licenses will be
+reinstated retroactively. Otherwise, all your licenses end permanently.
+
+## No Liability
+
+**As far as the law allows, the software comes as is, without any warranty
+or condition, and the licensor will not be liable to you for any damages
+arising out of these terms or use of the software, under any kind of legal
+claim.**
+
+## Definitions
+
+The **licensor** is the individual or entity offering these terms, and the
+**software** is the software the licensor makes available under these terms.
+
+**You** refers to the individual or entity agreeing to these terms.
+
+**Your company** is any legal entity, sole proprietorship, or other kind of
+organization that you work for, plus all organizations that have control
+over, are under the control of, or are under common control with that
+organization. **Control** means ownership of substantially all the assets of
+an entity, or the power to direct its management and policies by vote,
+contract, or otherwise. Control can be direct or indirect.
+
+**Your licenses** are all the licenses granted to you for the software under
+these terms.
+
+**Use** means anything you do with the software requiring one of your
+licenses.
