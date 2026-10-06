@@ -13,6 +13,9 @@ interface SampleDao {
     @Query("SELECT * FROM battery_samples WHERE timestamp >= :since ORDER BY timestamp ASC")
     suspend fun since(since: Long): List<BatterySample>
 
+    @Query("SELECT COUNT(*) FROM battery_samples WHERE timestamp >= :since AND charging = 1")
+    suspend fun chargingSamplesSince(since: Long): Int
+
     @Query("DELETE FROM battery_samples WHERE timestamp < :before")
     suspend fun trim(before: Long): Int
 }

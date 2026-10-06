@@ -124,8 +124,10 @@ class ChargingGuardService : Service() {
             NotificationChannel(
                 CHANNEL_ID,
                 "充电守护",
-                NotificationManager.IMPORTANCE_LOW,
-            ),
+                NotificationManager.IMPORTANCE_DEFAULT,
+            ).apply {
+                setShowBadge(true)
+            },
         )
         // 静默通道：最低重要性，不显示状态栏图标，满足前台服务的系统通知要求
         nm.createNotificationChannel(
@@ -140,6 +142,7 @@ class ChargingGuardService : Service() {
     private fun buildNotification(channelId: String, text: String): Notification =
         Notification.Builder(this, channelId)
             .setSmallIcon(R.drawable.ic_launcher)
+            .setBadgeIconType(Notification.BADGE_ICON_SMALL)
             .setContentTitle("充电管家")
             .setContentText(text)
             .setOngoing(true)
@@ -158,11 +161,10 @@ class ChargingGuardService : Service() {
      * 通道切换必须重新 startForeground 才能生效，同通道内直接 notify 即可。
      */
     private fun updateNotification(text: String, showInBar: Boolean) {
-        val notification = if (showInBar) {
-            buildNotification(CHANNEL_ID, text)
-        } else {
-            buildNotification(CHANNEL_SILENT_ID, "充电守护运行中")
-        }
+        val notification = buildNotification(
+            if (showInBar) CHANNEL_ID else CHANNEL_SILENT_ID,
+            if (showInBar) text else "充电守护运行中",
+        )
         if (lastShownInBar != showInBar) {
             startForegroundCompat(notification)
             lastShownInBar = showInBar

@@ -52,6 +52,14 @@ fun InfoScreen() {
             todayChargingCount = context.app.historyRepository.todayChargingCount()
         }
     }
+    LaunchedEffect(context.app.historyRepository) {
+        while (true) {
+            todayChargingCount = withContext(Dispatchers.IO) {
+                context.app.historyRepository.todayChargingCount()
+            }
+            kotlinx.coroutines.delay(5_000)
+        }
+    }
 
     Scaffold(
         topBar = { TopAppBar(title = "信息", largeTitle = "设备信息", scrollBehavior = scrollBehavior) },

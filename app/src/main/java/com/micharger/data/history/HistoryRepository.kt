@@ -24,7 +24,9 @@ class HistoryRepository(context: Context) {
      * 覆盖 App 未运行期间的会话；解析失败时回退本地样本统计。
      */
     suspend fun todayChargingCount(): Int = withContext(Dispatchers.IO) {
-        countFromDumpsys() ?: chargingTransitions(dao.since(startOfToday()))
+        val samples = dao.since(startOfToday())
+        val localCount = chargingTransitions(samples)
+        maxOf(localCount, countFromDumpsys() ?: 0)
     }
 
     /**

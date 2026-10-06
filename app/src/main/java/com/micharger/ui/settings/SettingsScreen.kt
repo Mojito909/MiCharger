@@ -23,6 +23,7 @@ import com.micharger.app
 import com.micharger.data.settings.AppSettings
 import com.micharger.service.ChargingGuardService
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.Dispatchers
 import top.yukonga.miuix.kmp.basic.DropdownItem
 import top.yukonga.miuix.kmp.basic.MiuixScrollBehavior
 import top.yukonga.miuix.kmp.basic.Scaffold
@@ -80,7 +81,7 @@ fun SettingsScreen(onOpenAbout: () -> Unit) {
                                 ChargingGuardService.start(context)
                             } else {
                                 ChargingGuardService.stop(context)
-                                launch(kotlinx.coroutines.Dispatchers.IO) {
+                                launch(Dispatchers.IO) {
                                     val controller = app.chargingController
                                     controller.initialize()
                                     controller.clearCurrentLimit()

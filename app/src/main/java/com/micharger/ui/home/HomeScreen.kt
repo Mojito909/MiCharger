@@ -1,19 +1,16 @@
 package com.micharger.ui.home
 
-import android.Manifest
-import android.os.Build
-import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.rememberScrollState
@@ -24,7 +21,6 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -41,13 +37,10 @@ import com.micharger.service.ChargingGuardService
 import com.micharger.util.Formatters
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import top.yukonga.miuix.kmp.basic.Card
 import top.yukonga.miuix.kmp.basic.MiuixScrollBehavior
 import top.yukonga.miuix.kmp.basic.Scaffold
-import top.yukonga.miuix.kmp.basic.SmallTitle
-import top.yukonga.miuix.kmp.basic.Switch
 import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.basic.TopAppBar
 import top.yukonga.miuix.kmp.theme.MiuixTheme
@@ -56,7 +49,6 @@ import top.yukonga.miuix.kmp.theme.MiuixTheme
 fun HomeScreen() {
     val scrollBehavior = MiuixScrollBehavior()
     val context = LocalContext.current
-    val scope = rememberCoroutineScope()
     var battery by remember { mutableStateOf<BatteryInfo?>(null) }
     val settings by context.app.settingsRepository.settingsFlow.collectAsState(initial = AppSettings())
     val guardStatus by ChargingGuardService.statusFlow.collectAsState()
@@ -82,15 +74,6 @@ fun HomeScreen() {
         }
     }
 
-    val notifPermission = rememberLauncherForActivityResult(
-        ActivityResultContracts.RequestPermission(),
-    ) { granted ->
-        if (granted) {
-            scope.launch { context.app.settingsRepository.setGuardEnabled(true) }
-            ChargingGuardService.start(context)
-        }
-    }
-
     Scaffold(
         topBar = { TopAppBar(title = "充电", largeTitle = "充电管家", scrollBehavior = scrollBehavior) },
     ) { padding ->
@@ -112,33 +95,6 @@ fun HomeScreen() {
                 BatteryCard(info = info)
             }
 
-            GuardCard(
-                enabled = settings.guardEnabled,
-                status = guardStatus,
-                targetSoc = settings.targetSoc,
-                resumeSoc = settings.resumeSoc,
-                onToggle = { checked ->
-                    if (checked && Build.VERSION.SDK_INT >= 33) {
-                        notifPermission.launch(Manifest.permission.POST_NOTIFICATIONS)
-                    } else {
-                        scope.launch {
-                            val app = context.app
-                            app.settingsRepository.setGuardEnabled(checked)
-                            if (checked) {
-                                ChargingGuardService.start(context)
-                            } else {
-                                ChargingGuardService.stop(context)
-                                withContext(Dispatchers.IO) {
-                                    val controller = app.chargingController
-                                    controller.initialize()
-                                    controller.clearCurrentLimit()
-                                    controller.resume()
-                                }
-                            }
-                        }
-                    }
-                },
-            )
         }
     }
 }
@@ -170,13 +126,54 @@ private fun GuardActivationCard(active: Boolean, status: String?) {
                     color = accent,
                 )
             }
-            Box(
+            Canvas(
                 modifier = Modifier
+                    .size(64.dp)
                     .clip(CircleShape)
-                    .background(accent)
-                    .padding(14.dp),
+                    .background(accent),
             ) {
-                Text(text = if (active) "✓" else "–", fontSize = 28.sp, color = surface)
+                val stroke = 4.dp.toPx()
+                if (active) {
+                    drawCircle(
+                        color = surface,
+                        radius = size.minDimension * 0.30f,
+                        style = androidx.compose.ui.graphics.drawscope.Stroke(width = stroke),
+                    )
+                    drawLine(
+                        color = surface,
+                        start = androidx.compose.ui.geometry.Offset(size.width * 0.34f, size.height * 0.52f),
+                        end = androidx.compose.ui.geometry.Offset(size.width * 0.47f, size.height * 0.66f),
+                        strokeWidth = stroke,
+                        cap = androidx.compose.ui.graphics.StrokeCap.Round,
+                    )
+                    drawLine(
+                        color = surface,
+                        start = androidx.compose.ui.geometry.Offset(size.width * 0.47f, size.height * 0.66f),
+                        end = androidx.compose.ui.geometry.Offset(size.width * 0.70f, size.height * 0.38f),
+                        strokeWidth = stroke,
+                        cap = androidx.compose.ui.graphics.StrokeCap.Round,
+                    )
+                } else {
+                    drawCircle(
+                        color = surface,
+                        radius = size.minDimension * 0.30f,
+                        style = androidx.compose.ui.graphics.drawscope.Stroke(width = stroke),
+                    )
+                    drawLine(
+                        color = surface,
+                        start = androidx.compose.ui.geometry.Offset(size.width * 0.38f, size.height * 0.38f),
+                        end = androidx.compose.ui.geometry.Offset(size.width * 0.62f, size.height * 0.62f),
+                        strokeWidth = stroke,
+                        cap = androidx.compose.ui.graphics.StrokeCap.Round,
+                    )
+                    drawLine(
+                        color = surface,
+                        start = androidx.compose.ui.geometry.Offset(size.width * 0.62f, size.height * 0.38f),
+                        end = androidx.compose.ui.geometry.Offset(size.width * 0.38f, size.height * 0.62f),
+                        strokeWidth = stroke,
+                        cap = androidx.compose.ui.graphics.StrokeCap.Round,
+                    )
+                }
             }
         }
     }
@@ -226,55 +223,6 @@ private fun BatteryCard(info: BatteryInfo) {
             InfoRow("功率", Formatters.power(info.powerW))
             InfoRow("温度", Formatters.temp(info.tempTenths))
             InfoRow("剩余容量", Formatters.capacity(info.chargeCounterMah))
-        }
-    }
-}
-
-@Composable
-private fun GuardCard(
-    enabled: Boolean,
-    status: String?,
-    targetSoc: Int,
-    resumeSoc: Int,
-    onToggle: (Boolean) -> Unit,
-) {
-    SmallTitle(text = "充电守护")
-    Card(modifier = Modifier.fillMaxWidth()) {
-        Column(
-            modifier = Modifier.padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(10.dp),
-        ) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        text = "充电守护",
-                        fontSize = 16.sp,
-                        fontWeight = FontWeight.Bold,
-                    )
-                    Text(
-                        text = if (enabled) "已激活 · 目标 $targetSoc% / 恢复 $resumeSoc%"
-                               else "未激活",
-                        fontSize = 13.sp,
-                        color = if (enabled) MiuixTheme.colorScheme.primary
-                                else MiuixTheme.colorScheme.onSurfaceVariantSummary,
-                        fontWeight = if (enabled) FontWeight.Medium else FontWeight.Normal,
-                    )
-                }
-                Switch(checked = enabled, onCheckedChange = onToggle)
-            }
-            if (enabled) {
-                Text(
-                    text = status ?: "正在启动守护服务…",
-                    fontSize = 14.sp,
-                    color = MiuixTheme.colorScheme.onSurface,
-                )
-            } else {
-                Text(
-                    text = "开启后自动维持在目标电量区间，减少电池满电损耗",
-                    fontSize = 13.sp,
-                    color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
-                )
-            }
         }
     }
 }
