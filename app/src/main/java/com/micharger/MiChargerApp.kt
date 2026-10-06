@@ -7,7 +7,6 @@ import com.micharger.data.battery.ChargingNodeDetector
 import com.micharger.data.battery.SysFsReader
 import com.micharger.data.history.HistoryRepository
 import com.micharger.data.settings.SettingsRepository
-import com.micharger.data.usage.AppUsageRepository
 
 class MiChargerApp : Application() {
 
@@ -23,9 +22,6 @@ class MiChargerApp : Application() {
     lateinit var historyRepository: HistoryRepository
         private set
 
-    lateinit var appUsageRepository: AppUsageRepository
-        private set
-
     override fun onCreate() {
         super.onCreate()
         instance = this
@@ -33,7 +29,6 @@ class MiChargerApp : Application() {
         chargingController = ChargingController(SysFsReader(), ChargingNodeDetector(SysFsReader()))
         settingsRepository = SettingsRepository(this)
         historyRepository = HistoryRepository(this)
-        appUsageRepository = AppUsageRepository(this)
     }
 
     companion object {

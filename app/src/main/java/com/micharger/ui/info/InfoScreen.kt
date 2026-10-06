@@ -1,11 +1,14 @@
 package com.micharger.ui.info
 
 import android.os.Build
+import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -16,10 +19,17 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.micharger.app
 import com.micharger.data.battery.SysFsReader
+import com.micharger.data.history.BatterySample
 import com.micharger.util.Formatters
 import com.topjohnwu.superuser.Shell
 import java.util.Locale
@@ -31,23 +41,28 @@ import top.yukonga.miuix.kmp.basic.Scaffold
 import top.yukonga.miuix.kmp.basic.SmallTitle
 import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.basic.TopAppBar
+import top.yukonga.miuix.kmp.theme.MiuixTheme
 
 @Composable
 fun InfoScreen() {
     val scrollBehavior = MiuixScrollBehavior()
-
-    var deviceRows by remember { mutableStateOf(listOf<Pair<String, String>>()) }
-    var batteryRows by remember { mutableStateOf(listOf<Pair<String, String>>()) }
+    val context = LocalContext.current
+    var deviceRows by remember { mutableStateOf<List<Pair<String, String>>?>(null) }
+    var batteryRows by remember { mutableStateOf<List<Pair<String, String>>?>(null) }
+    var todayChargingCount by remember { mutableStateOf<Int?>(null) }
+    var historySamples by remember { mutableStateOf<List<BatterySample>>(emptyList()) }
 
     LaunchedEffect(Unit) {
         withContext(Dispatchers.IO) {
             deviceRows = loadDeviceRows()
             batteryRows = loadBatteryRows()
+            todayChargingCount = context.app.historyRepository.todayChargingCount()
+            historySamples = context.app.historyRepository.last24h().sortedBy { it.timestamp }
         }
     }
 
     Scaffold(
-        topBar = { TopAppBar(title = "信息", scrollBehavior = scrollBehavior) },
+        topBar = { TopAppBar(title = "信息", largeTitle = "设备信息", scrollBehavior = scrollBehavior) },
     ) { padding ->
         Column(
             modifier = Modifier
@@ -56,17 +71,46 @@ fun InfoScreen() {
                 .padding(horizontal = 16.dp)
                 .nestedScroll(scrollBehavior.nestedScrollConnection)
                 .verticalScroll(rememberScrollState()),
+            verticalArrangement = Arrangement.spacedBy(20.dp),
         ) {
-            SmallTitle(text = "设备")
-            Card(modifier = Modifier.fillMaxWidth()) {
-                Column(modifier = Modifier.padding(16.dp)) {
-                    deviceRows.forEach { (k, v) -> InfoRow(k, v) }
-                }
-            }
-            SmallTitle(text = "电池")
-            Card(modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp)) {
-                Column(modifier = Modifier.padding(16.dp)) {
-                    batteryRows.forEach { (k, v) -> InfoRow(k, v) }
+            InfoSection(
+                title = "设备",
+                rows = deviceRows,
+                emptyText = "正在读取设备信息…",
+            )
+            InfoSection(
+                title = "电池",
+                rows = batteryRows,
+                emptyText = "正在读取电池信息…",
+            )
+            BatteryHistoryCard(samples = historySamples)
+            ChargingCountCard(count = todayChargingCount)
+            Spacer(modifier = Modifier.height(4.dp))
+        }
+    }
+}
+
+@Composable
+private fun InfoSection(
+    title: String,
+    rows: List<Pair<String, String>>?,
+    emptyText: String,
+) {
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        SmallTitle(text = title)
+        Card(modifier = Modifier.fillMaxWidth()) {
+            if (rows == null) {
+                Text(
+                    text = emptyText,
+                    modifier = Modifier.padding(16.dp),
+                    fontSize = 14.sp,
+                    color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
+                )
+            } else {
+                Column(modifier = Modifier.padding(vertical = 8.dp)) {
+                    rows.forEach { (label, value) ->
+                        InfoRow(label = label, value = value)
+                    }
                 }
             }
         }
@@ -81,8 +125,10 @@ private fun loadDeviceRows(): List<Pair<String, String>> {
         "型号" to Build.MODEL,
         "设备代号" to Build.DEVICE,
         "Android 版本" to "${Build.VERSION.RELEASE} (API ${Build.VERSION.SDK_INT})",
-        "系统版本" to (listOfNotNull(miui?.takeIf { it.isNotEmpty() && !it.contains("error") },
-            hyper?.takeIf { it.isNotEmpty() && !it.contains("error") }).firstOrNull() ?: "无"),
+        "系统版本" to (listOfNotNull(
+            miui?.takeIf { it.isNotEmpty() && !it.contains("error", ignoreCase = true) },
+            hyper?.takeIf { it.isNotEmpty() && !it.contains("error", ignoreCase = true) },
+        ).firstOrNull() ?: "无"),
     )
 }
 
@@ -104,10 +150,116 @@ private fun loadBatteryRows(): List<Pair<String, String>> {
 }
 
 @Composable
+private fun BatteryHistoryCard(samples: List<BatterySample>) {
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        SmallTitle(text = "24 小时电量曲线")
+        Card(modifier = Modifier.fillMaxWidth()) {
+            Column(modifier = Modifier.padding(16.dp)) {
+                if (samples.size < 2) {
+                    Text(
+                        text = "暂无历史数据。开启充电守护服务后，将按采样间隔自动记录。",
+                        fontSize = 14.sp,
+                        color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
+                    )
+                } else {
+                    val dividerColor = MiuixTheme.colorScheme.dividerLine
+                    val primaryColor = MiuixTheme.colorScheme.primary
+                    Canvas(modifier = Modifier.fillMaxWidth().height(160.dp)) {
+                        val minT = samples.first().timestamp.toFloat()
+                        val maxT = samples.last().timestamp.toFloat()
+                        val range = (maxT - minT).coerceAtLeast(1f)
+                        val points = samples.map {
+                            Offset(
+                                x = (it.timestamp - minT) / range * size.width,
+                                y = (1f - it.level.coerceIn(0, 100) / 100f) * size.height,
+                            )
+                        }
+                        drawLine(
+                            color = dividerColor,
+                            start = Offset(0f, 0f),
+                            end = Offset(size.width, 0f),
+                            strokeWidth = 2f,
+                        )
+                        val path = Path().apply {
+                            moveTo(points.first().x, points.first().y)
+                            points.drop(1).forEach { lineTo(it.x, it.y) }
+                        }
+                        drawPath(
+                            path = path,
+                            color = primaryColor,
+                            style = Stroke(width = 6f),
+                        )
+                    }
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Row(modifier = Modifier.fillMaxWidth()) {
+                        Text(
+                            text = Formatters.hhmm(samples.first().timestamp),
+                            fontSize = 12.sp,
+                            color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
+                        )
+                        Spacer(modifier = Modifier.weight(1f))
+                        Text(
+                            text = "现在",
+                            fontSize = 12.sp,
+                            color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun ChargingCountCard(count: Int?) {
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        SmallTitle(text = "今日统计")
+        Card(modifier = Modifier.fillMaxWidth()) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 14.dp),
+                verticalAlignment = androidx.compose.ui.Alignment.CenterVertically,
+            ) {
+                Column {
+                    Text(
+                        text = "今日充电次数",
+                        fontSize = 14.sp,
+                        color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
+                    )
+                    Text(
+                        text = count?.let { "$it 次" } ?: "正在统计…",
+                        fontSize = 24.sp,
+                        fontWeight = FontWeight.Medium,
+                    )
+                }
+                Spacer(modifier = Modifier.weight(1f))
+                Text(
+                    text = "按充电开始次数计算",
+                    fontSize = 12.sp,
+                    color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
+                )
+            }
+        }
+    }
+}
+
+@Composable
 private fun InfoRow(label: String, value: String) {
-    Row(modifier = Modifier.fillMaxWidth().padding(vertical = 2.dp)) {
-        Text(text = label, fontSize = 14.sp)
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 9.dp),
+    ) {
+        Text(
+            text = label,
+            fontSize = 14.sp,
+            color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
+        )
         Spacer(modifier = Modifier.weight(1f))
-        Text(text = value, fontSize = 14.sp)
+        Text(
+            text = value,
+            fontSize = 14.sp,
+        )
     }
 }

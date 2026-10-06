@@ -20,7 +20,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import com.micharger.app
 import com.micharger.data.settings.AppSettings
 import com.micharger.service.ChargingGuardService
@@ -38,7 +37,7 @@ private val THEME_ITEMS = listOf("跟随系统" to "System", "浅色" to "Light"
 private val SAMPLE_ITEMS = listOf(1, 5, 15, 30)
 
 @Composable
-fun SettingsScreen() {
+fun SettingsScreen(onOpenAbout: () -> Unit) {
     val scrollBehavior = MiuixScrollBehavior()
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
@@ -135,10 +134,11 @@ fun SettingsScreen() {
 
             SmallTitle(text = "关于")
             top.yukonga.miuix.kmp.basic.Card(modifier = Modifier.fillMaxWidth()) {
-                androidx.compose.foundation.layout.Column(modifier = Modifier.padding(16.dp)) {
-                    AboutRow("应用", "MiCharger 充电管家")
-                    AboutRow("版本", versionName(context))
-                }
+                top.yukonga.miuix.kmp.preference.ArrowPreference(
+                    title = "关于 MiCharger",
+                    summary = "版本 ${versionName(context)} · 图标、开源仓库与技术栈",
+                    onClick = onOpenAbout,
+                )
             }
         }
     }
@@ -148,12 +148,3 @@ private fun versionName(context: Context): String =
     runCatching {
         context.packageManager.getPackageInfo(context.packageName, 0).versionName ?: "--"
     }.getOrDefault("--")
-
-@Composable
-private fun AboutRow(label: String, value: String) {
-    androidx.compose.foundation.layout.Row(modifier = Modifier.fillMaxWidth().padding(vertical = 2.dp)) {
-        top.yukonga.miuix.kmp.basic.Text(label, fontSize = 14.sp)
-        androidx.compose.foundation.layout.Spacer(modifier = Modifier.weight(1f))
-        top.yukonga.miuix.kmp.basic.Text(value, fontSize = 14.sp)
-    }
-}

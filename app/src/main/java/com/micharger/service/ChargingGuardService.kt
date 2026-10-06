@@ -12,11 +12,12 @@ import android.os.IBinder
 import com.micharger.R
 import com.micharger.app
 import com.micharger.data.history.BatterySample
-import kotlin.coroutines.coroutineContext
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
+import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
@@ -24,6 +25,7 @@ import kotlinx.coroutines.launch
 class ChargingGuardService : Service() {
 
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+    private var guardJob: Job? = null
 
     override fun onBind(intent: Intent?): IBinder? = null
 
@@ -34,7 +36,9 @@ class ChargingGuardService : Service() {
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
-        scope.launch { guardLoop() }
+        // 重复启动时取消旧循环，保证守护循环全局唯一
+        guardJob?.cancel()
+        guardJob = scope.launch { guardLoop() }
         return START_STICKY
     }
 
@@ -46,40 +50,55 @@ class ChargingGuardService : Service() {
     private suspend fun guardLoop() {
         val app = app
         val history = app.historyRepository
-        while (coroutineContext.isActive) {
-            val settings = app.settingsRepository.settingsOnce()
-            if (!settings.guardEnabled) break
+        var lastSampleAt = 0L
 
-            val info = app.batteryRepository.snapshot()
-            val controller = app.chargingController
-
-            // 首次循环若未初始化节点则尝试初始化
-            if (controller.nodes == null) controller.initialize()
-
-            val isSuspended = controller.isSuspended()
-            when {
-                isSuspended == false && info.levelPct >= settings.targetSoc ->
-                    controller.pause()
-                isSuspended == true && info.levelPct <= settings.resumeSoc ->
-                    controller.resume()
-            }
-
-            // 历史采样
+        while (currentCoroutineContext().isActive) {
+            // 单轮异常不终结守护
             runCatching {
-                history.insert(
-                    BatterySample(
-                        timestamp = info.timestamp,
-                        level = info.levelPct,
-                        charging = info.charging,
-                    ),
-                )
-                history.trim()
-            }
+                val settings = app.settingsRepository.settingsOnce()
+                if (!settings.guardEnabled) {
+                    stopSelf()
+                    return
+                }
 
-            updateNotification("电量 ${info.levelPct}% · " + if (info.charging) "充电中" else "未充电")
-            delay(settings.sampleMinutes * 60_000L)
+                val controller = app.chargingController
+                // 节点检测失败（无可写节点）时每轮重试，直到成功
+                if (!controller.canControl) controller.initialize()
+
+                val info = app.batteryRepository.snapshot()
+
+                // 直接按电量写节点：写是幂等的，不依赖读状态是否可解析
+                val status = when {
+                    info.levelPct >= settings.targetSoc ->
+                        if (controller.pause()) "已暂停充电（目标 ${settings.targetSoc}%）"
+                        else "暂停失败：无法写入充电节点"
+
+                    info.levelPct <= settings.resumeSoc ->
+                        if (controller.resume()) "已恢复充电（恢复阈值 ${settings.resumeSoc}%）"
+                        else "恢复失败：无法写入充电节点"
+
+                    else -> "守护中 · 目标 ${settings.targetSoc}%"
+                }
+                updateNotification("电量 ${info.levelPct}% · $status")
+
+                // 历史采样按独立间隔记录
+                val now = System.currentTimeMillis()
+                if (now - lastSampleAt >= settings.sampleMinutes * 60_000L) {
+                    lastSampleAt = now
+                    runCatching {
+                        history.insert(
+                            BatterySample(
+                                timestamp = info.timestamp,
+                                level = info.levelPct,
+                                charging = info.charging,
+                            ),
+                        )
+                        history.trim()
+                    }
+                }
+            }
+            delay(CONTROL_INTERVAL_MS)
         }
-        stopSelf()
     }
 
     private fun createChannel() {
@@ -116,6 +135,9 @@ class ChargingGuardService : Service() {
     companion object {
         private const val CHANNEL_ID = "charging_guard"
         private const val NOTIFICATION_ID = 1
+
+        /** 控制周期：与采样间隔解耦，保证阈值动作及时执行 */
+        private const val CONTROL_INTERVAL_MS = 30_000L
 
         fun start(context: Context) {
             context.startForegroundService(Intent(context, ChargingGuardService::class.java))
