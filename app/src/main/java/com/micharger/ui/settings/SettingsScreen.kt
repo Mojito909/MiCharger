@@ -24,6 +24,7 @@ import com.micharger.data.settings.AppSettings
 import com.micharger.service.ChargingGuardService
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import top.yukonga.miuix.kmp.basic.DropdownItem
 import top.yukonga.miuix.kmp.basic.MiuixScrollBehavior
 import top.yukonga.miuix.kmp.basic.Scaffold
@@ -46,13 +47,59 @@ fun SettingsScreen(onOpenAbout: () -> Unit) {
     // 本地拖动状态：松手才写 DataStore
     var targetSoc by remember(settings.targetSoc) { mutableStateOf(settings.targetSoc.toFloat()) }
     var resumeSoc by remember(settings.resumeSoc) { mutableStateOf(settings.resumeSoc.toFloat()) }
+    var tempStopC by remember(settings.tempStopC) { mutableStateOf(settings.tempStopC.toFloat()) }
+    var tempResumeC by remember(settings.tempResumeC) { mutableStateOf(settings.tempResumeC.toFloat()) }
 
+    // 通知权限授予后执行的待办动作（区分是哪个开关发起）
+    var pendingEnable by remember { mutableStateOf<(() -> Unit)?>(null) }
     val notifPermission = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestPermission(),
     ) { granted ->
-        if (granted) {
-            scope.launch { context.app.settingsRepository.setGuardEnabled(true) }
-            ChargingGuardService.start(context)
+        val action = pendingEnable
+        pendingEnable = null
+        if (granted) action?.invoke()
+    }
+
+    suspend fun startService() = ChargingGuardService.start(context)
+
+    // 停止服务并恢复充电（顺带清除历史遗留限流）；仅在没有其他功能依赖服务时调用
+    suspend fun stopServiceAndRestore() {
+        val app = context.app
+        ChargingGuardService.stop(context)
+        withContext(Dispatchers.IO) {
+            val controller = app.chargingController
+            controller.initialize()
+            controller.clearCurrentLimit()
+            controller.resume()
+        }
+    }
+
+    suspend fun setGuardWithService(checked: Boolean) {
+        val app = context.app
+        app.settingsRepository.setGuardEnabled(checked)
+        if (checked) {
+            startService()
+        } else if (!app.settingsRepository.settingsOnce().tempStopEnabled) {
+            stopServiceAndRestore()
+        }
+    }
+
+    suspend fun setTempWithService(checked: Boolean) {
+        val app = context.app
+        app.settingsRepository.setTempStopEnabled(checked)
+        if (checked) {
+            startService()
+        } else if (!app.settingsRepository.settingsOnce().guardEnabled) {
+            stopServiceAndRestore()
+        }
+    }
+
+    fun requestOrRun(enable: suspend () -> Unit) {
+        if (Build.VERSION.SDK_INT >= 33) {
+            pendingEnable = { scope.launch { enable() } }
+            notifPermission.launch(android.Manifest.permission.POST_NOTIFICATIONS)
+        } else {
+            scope.launch { enable() }
         }
     }
 
@@ -71,25 +118,8 @@ fun SettingsScreen(onOpenAbout: () -> Unit) {
             SwitchPreference(
                 checked = settings.guardEnabled,
                 onCheckedChange = { checked ->
-                    if (checked && Build.VERSION.SDK_INT >= 33) {
-                        notifPermission.launch(android.Manifest.permission.POST_NOTIFICATIONS)
-                    } else {
-                        scope.launch {
-                            val app = context.app
-                            app.settingsRepository.setGuardEnabled(checked)
-                            if (checked) {
-                                ChargingGuardService.start(context)
-                            } else {
-                                ChargingGuardService.stop(context)
-                                launch(Dispatchers.IO) {
-                                    val controller = app.chargingController
-                                    controller.initialize()
-                                    controller.clearCurrentLimit()
-                                    controller.resume()
-                                }
-                            }
-                        }
-                    }
+                    if (checked) requestOrRun { setGuardWithService(true) }
+                    else scope.launch { setGuardWithService(false) }
                 },
                 title = "充电守护服务",
                 summary = "达到目标电量自动暂停充电，回落到恢复阈值继续充电",
@@ -130,6 +160,39 @@ fun SettingsScreen(onOpenAbout: () -> Unit) {
                 valueText = "${resumeSoc.toInt()} %",
                 valueRange = 30f..(targetSoc - 5f),
                 summary = "低于此电量时恢复充电",
+            )
+
+            SmallTitle(text = "温控保护")
+            SwitchPreference(
+                checked = settings.tempStopEnabled,
+                onCheckedChange = { checked ->
+                    if (checked) requestOrRun { setTempWithService(true) }
+                    else scope.launch { setTempWithService(false) }
+                },
+                title = "温控保护",
+                summary = "电池过热自动暂停充电，温度回落自动恢复（独立于充电守护）",
+            )
+            SliderPreference(
+                value = tempStopC,
+                onValueChange = { tempStopC = it },
+                onValueChangeFinished = {
+                    scope.launch { context.app.settingsRepository.setTempStopC(tempStopC.toInt()) }
+                },
+                title = "停止充电温度",
+                valueText = "${tempStopC.toInt()} ℃",
+                valueRange = 40f..60f,
+                summary = "达到此温度暂停充电",
+            )
+            SliderPreference(
+                value = tempResumeC,
+                onValueChange = { tempResumeC = it },
+                onValueChangeFinished = {
+                    scope.launch { context.app.settingsRepository.setTempResumeC(tempResumeC.toInt()) }
+                },
+                title = "恢复充电温度",
+                valueText = "${tempResumeC.toInt()} ℃",
+                valueRange = 25f..(tempStopC - 5f),
+                summary = "降到此温度恢复充电",
             )
 
             SmallTitle(text = "历史记录")

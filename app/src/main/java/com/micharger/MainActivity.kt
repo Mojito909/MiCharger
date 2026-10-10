@@ -22,10 +22,10 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
-        // 打开应用时校正守护服务：开关为开但服务未运行（如重启后未自启）则自动拉起
+        // 打开应用时校正守护服务：守护/温控开关为开但服务未运行（如重启后未自启）则自动拉起
         lifecycleScope.launch(Dispatchers.IO) {
             val settings = app.settingsRepository.settingsOnce()
-            if (settings.guardEnabled && !ChargingGuardService.isRunning) {
+            if ((settings.guardEnabled || settings.tempStopEnabled) && !ChargingGuardService.isRunning) {
                 ChargingGuardService.start(this@MainActivity)
             }
         }

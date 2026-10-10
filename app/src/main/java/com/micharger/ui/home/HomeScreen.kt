@@ -101,7 +101,7 @@ fun HomeScreen() {
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
             GuardActivationCard(
-                active = settings.guardEnabled && guardStatus != null,
+                active = (settings.guardEnabled || settings.tempStopEnabled) && guardStatus != null,
                 status = guardStatus,
             )
 
@@ -112,6 +112,7 @@ fun HomeScreen() {
             ManualChargeControlCard(
                 suspended = manualSuspended,
                 guardActive = settings.guardEnabled,
+                tempActive = settings.tempStopEnabled,
                 onToggle = { pause ->
                     scope.launch {
                         withContext(Dispatchers.IO) {
@@ -149,7 +150,7 @@ private fun GuardActivationCard(active: Boolean, status: String?) {
                     color = accent,
                 )
                 Text(
-                    text = status ?: "开启充电守护后，自动维持目标电量",
+                    text = status ?: "开启充电守护或温控保护后，自动管理充电",
                     fontSize = 14.sp,
                     color = accent,
                 )
@@ -211,6 +212,7 @@ private fun GuardActivationCard(active: Boolean, status: String?) {
 private fun ManualChargeControlCard(
     suspended: Boolean?,
     guardActive: Boolean,
+    tempActive: Boolean,
     onToggle: (Boolean) -> Unit,
 ) {
     SmallTitle(text = "充电控制")
@@ -229,13 +231,14 @@ private fun ManualChargeControlCard(
                     Text(
                         text = when {
                             guardActive -> "守护服务运行中，手动操作可能被覆盖"
+                            tempActive -> "温控保护运行中，过热时会自动暂停充电"
                             suspended == null -> "无法读取充电状态"
                             suspended -> "已暂停，插入充电器也不会充电"
                             else -> "正常充电中"
                         },
                         fontSize = 13.sp,
                         color = when {
-                            guardActive || suspended == null -> MiuixTheme.colorScheme.onSurfaceVariantSummary
+                            guardActive || tempActive || suspended == null -> MiuixTheme.colorScheme.onSurfaceVariantSummary
                             suspended -> MiuixTheme.colorScheme.primary
                             else -> MiuixTheme.colorScheme.onSurfaceVariantSummary
                         },

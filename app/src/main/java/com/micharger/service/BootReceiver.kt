@@ -10,7 +10,7 @@ class BootReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {
         if (intent.action != Intent.ACTION_BOOT_COMPLETED) return
         val settings = runBlocking { context.app.settingsRepository.settingsOnce() }
-        if (settings.bootStart && settings.guardEnabled) {
+        if (settings.bootStart && (settings.guardEnabled || settings.tempStopEnabled)) {
             ChargingGuardService.start(context)
         }
     }
