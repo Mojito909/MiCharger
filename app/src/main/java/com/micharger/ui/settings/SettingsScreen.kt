@@ -115,106 +115,122 @@ fun SettingsScreen(onOpenAbout: () -> Unit) {
                 .verticalScroll(rememberScrollState()),
         ) {
             SmallTitle(text = "充电守护")
-            SwitchPreference(
-                checked = settings.guardEnabled,
-                onCheckedChange = { checked ->
-                    if (checked) requestOrRun { setGuardWithService(true) }
-                    else scope.launch { setGuardWithService(false) }
-                },
-                title = "充电守护服务",
-                summary = "达到目标电量自动暂停充电，回落到恢复阈值继续充电",
-            )
-            SwitchPreference(
-                checked = settings.showNotification,
-                onCheckedChange = { checked ->
-                    scope.launch { context.app.settingsRepository.setShowNotification(checked) }
-                },
-                title = "状态栏显示",
-                summary = "关闭后守护转入静默运行，不再在状态栏显示图标（需守护服务开启）",
-            )
-            SwitchPreference(
-                checked = settings.bootStart,
-                onCheckedChange = { checked ->
-                    scope.launch { context.app.settingsRepository.setBootStart(checked) }
-                },
-                title = "开机自启",
-                summary = "开机后自动启动充电守护（需守护服务开启）",
-            )
-            SliderPreference(
-                value = targetSoc,
-                onValueChange = { targetSoc = it },
-                onValueChangeFinished = {
-                    scope.launch { context.app.settingsRepository.setTargetSoc(targetSoc.toInt()) }
-                },
-                title = "目标电量",
-                valueText = "${targetSoc.toInt()} %",
-                valueRange = 50f..95f,
-            )
-            SliderPreference(
-                value = resumeSoc,
-                onValueChange = { resumeSoc = it },
-                onValueChangeFinished = {
-                    scope.launch { context.app.settingsRepository.setResumeSoc(resumeSoc.toInt()) }
-                },
-                title = "恢复阈值",
-                valueText = "${resumeSoc.toInt()} %",
-                valueRange = 30f..(targetSoc - 5f),
-                summary = "低于此电量时恢复充电",
-            )
+            top.yukonga.miuix.kmp.basic.Card(
+                modifier = Modifier.fillMaxWidth().padding(bottom = 12.dp),
+            ) {
+                SwitchPreference(
+                    checked = settings.guardEnabled,
+                    onCheckedChange = { checked ->
+                        if (checked) requestOrRun { setGuardWithService(true) }
+                        else scope.launch { setGuardWithService(false) }
+                    },
+                    title = "充电守护服务",
+                    summary = "达到目标电量自动暂停充电，回落到恢复阈值继续充电",
+                )
+                SwitchPreference(
+                    checked = settings.showNotification,
+                    onCheckedChange = { checked ->
+                        scope.launch { context.app.settingsRepository.setShowNotification(checked) }
+                    },
+                    title = "状态栏显示",
+                    summary = "关闭后守护转入静默运行，不再在状态栏显示图标（需守护服务开启）",
+                )
+                SwitchPreference(
+                    checked = settings.bootStart,
+                    onCheckedChange = { checked ->
+                        scope.launch { context.app.settingsRepository.setBootStart(checked) }
+                    },
+                    title = "开机自启",
+                    summary = "开机后自动启动充电守护（需守护服务开启）",
+                )
+                SliderPreference(
+                    value = targetSoc,
+                    onValueChange = { targetSoc = it },
+                    onValueChangeFinished = {
+                        scope.launch { context.app.settingsRepository.setTargetSoc(targetSoc.toInt()) }
+                    },
+                    title = "目标电量",
+                    valueText = "${targetSoc.toInt()} %",
+                    valueRange = 50f..95f,
+                )
+                SliderPreference(
+                    value = resumeSoc,
+                    onValueChange = { resumeSoc = it },
+                    onValueChangeFinished = {
+                        scope.launch { context.app.settingsRepository.setResumeSoc(resumeSoc.toInt()) }
+                    },
+                    title = "恢复阈值",
+                    valueText = "${resumeSoc.toInt()} %",
+                    valueRange = 30f..(targetSoc - 5f),
+                    summary = "低于此电量时恢复充电",
+                )
+            }
 
             SmallTitle(text = "温控保护")
-            SwitchPreference(
-                checked = settings.tempStopEnabled,
-                onCheckedChange = { checked ->
-                    if (checked) requestOrRun { setTempWithService(true) }
-                    else scope.launch { setTempWithService(false) }
-                },
-                title = "温控保护",
-                summary = "电池过热自动暂停充电，温度回落自动恢复（独立于充电守护）",
-            )
-            SliderPreference(
-                value = tempStopC,
-                onValueChange = { tempStopC = it },
-                onValueChangeFinished = {
-                    scope.launch { context.app.settingsRepository.setTempStopC(tempStopC.toInt()) }
-                },
-                title = "停止充电温度",
-                valueText = "${tempStopC.toInt()} ℃",
-                valueRange = 40f..60f,
-                summary = "达到此温度暂停充电",
-            )
-            SliderPreference(
-                value = tempResumeC,
-                onValueChange = { tempResumeC = it },
-                onValueChangeFinished = {
-                    scope.launch { context.app.settingsRepository.setTempResumeC(tempResumeC.toInt()) }
-                },
-                title = "恢复充电温度",
-                valueText = "${tempResumeC.toInt()} ℃",
-                valueRange = 25f..(tempStopC - 5f),
-                summary = "降到此温度恢复充电",
-            )
+            top.yukonga.miuix.kmp.basic.Card(
+                modifier = Modifier.fillMaxWidth().padding(bottom = 12.dp),
+            ) {
+                SwitchPreference(
+                    checked = settings.tempStopEnabled,
+                    onCheckedChange = { checked ->
+                        if (checked) requestOrRun { setTempWithService(true) }
+                        else scope.launch { setTempWithService(false) }
+                    },
+                    title = "温控保护",
+                    summary = "电池过热自动暂停充电，温度回落自动恢复（独立于充电守护）",
+                )
+                SliderPreference(
+                    value = tempStopC,
+                    onValueChange = { tempStopC = it },
+                    onValueChangeFinished = {
+                        scope.launch { context.app.settingsRepository.setTempStopC(tempStopC.toInt()) }
+                    },
+                    title = "停止充电温度",
+                    valueText = "${tempStopC.toInt()} ℃",
+                    valueRange = 40f..60f,
+                    summary = "达到此温度暂停充电",
+                )
+                SliderPreference(
+                    value = tempResumeC,
+                    onValueChange = { tempResumeC = it },
+                    onValueChangeFinished = {
+                        scope.launch { context.app.settingsRepository.setTempResumeC(tempResumeC.toInt()) }
+                    },
+                    title = "恢复充电温度",
+                    valueText = "${tempResumeC.toInt()} ℃",
+                    valueRange = 25f..(tempStopC - 5f),
+                    summary = "降到此温度恢复充电",
+                )
+            }
 
             SmallTitle(text = "历史记录")
-            OverlaySpinnerPreference(
-                items = SAMPLE_ITEMS.map { DropdownItem(text = "$it 分钟") },
-                selectedIndex = SAMPLE_ITEMS.indexOf(settings.sampleMinutes).coerceAtLeast(0),
-                title = "采样间隔",
-                summary = "充电守护运行时按此间隔记录电量",
-                onSelectedIndexChange = { index ->
-                    scope.launch { context.app.settingsRepository.setSampleMinutes(SAMPLE_ITEMS[index]) }
-                },
-            )
+            top.yukonga.miuix.kmp.basic.Card(
+                modifier = Modifier.fillMaxWidth().padding(bottom = 12.dp),
+            ) {
+                OverlaySpinnerPreference(
+                    items = SAMPLE_ITEMS.map { DropdownItem(text = "$it 分钟") },
+                    selectedIndex = SAMPLE_ITEMS.indexOf(settings.sampleMinutes).coerceAtLeast(0),
+                    title = "采样间隔",
+                    summary = "充电守护运行时按此间隔记录电量",
+                    onSelectedIndexChange = { index ->
+                        scope.launch { context.app.settingsRepository.setSampleMinutes(SAMPLE_ITEMS[index]) }
+                    },
+                )
+            }
 
             SmallTitle(text = "外观")
-            OverlaySpinnerPreference(
-                items = THEME_ITEMS.map { DropdownItem(text = it.first) },
-                selectedIndex = THEME_ITEMS.map { it.second }.indexOf(settings.themeMode).coerceAtLeast(0),
-                title = "主题模式",
-                onSelectedIndexChange = { index ->
-                    scope.launch { context.app.settingsRepository.setThemeMode(THEME_ITEMS[index].second) }
-                },
-            )
+            top.yukonga.miuix.kmp.basic.Card(
+                modifier = Modifier.fillMaxWidth().padding(bottom = 12.dp),
+            ) {
+                OverlaySpinnerPreference(
+                    items = THEME_ITEMS.map { DropdownItem(text = it.first) },
+                    selectedIndex = THEME_ITEMS.map { it.second }.indexOf(settings.themeMode).coerceAtLeast(0),
+                    title = "主题模式",
+                    onSelectedIndexChange = { index ->
+                        scope.launch { context.app.settingsRepository.setThemeMode(THEME_ITEMS[index].second) }
+                    },
+                )
+            }
 
             SmallTitle(text = "关于")
             top.yukonga.miuix.kmp.basic.Card(modifier = Modifier.fillMaxWidth()) {
